@@ -28,46 +28,83 @@ const cache = new MessagesCache();
 Single add
 
 ```js
-cache.addOneAtTail(1, 1);
-cache.addOneAtHead(2, 2);
+cache.addOneAtHead(2, "Hi");
+```
+
+```js
+cache.addOneAtTail(1, "Hey, what's up?");
 ```
 
 Batch operations
 
 ```js
-cache.addBunchAtHead([
-  { id: 5, data: 5 },
-  { id: 6, data: 6 },
+cache.addManyAtHead([
+  { id: 5, data: "Hello" },
+  { id: 6, data: "I like your profile. Would you like to connect?" },
 ]);
 ```
 
-### Delete
-
 ```js
-cache.delete(1);
+cache.addManyAtTail([
+  { id: 7, data: "Are you there?" },
+  { id: 8, data: "Sorry, I've been busy." },
+]);
 ```
 
 ### Update
 
+Updating the value of an existing record in the cache by key.
+
 ```js
-cache.updateMessage(9, 9);
-cache.replaceMessage(2, 4, 4);
+cache.updateOne(8, "Sorry, I've been busy. I'll get back to you soon!");
+```
+
+Replace the message with the key with a new message with a different key while keeping its position relative to the other messages.
+
+```js
+cache.replaceOne(1, 3, "Hey, how are you?");
+```
+
+Delete one message with the given key.
+
+```js
+cache.deleteOne(5);
 ```
 
 ### Read Cache
 
+Retrieves the data that with the given key. Returns `null` if there is no message with that id.
+
 ```js
-cache.get(4);
-cache.getCacheData();
+cache.getOne(4); //> null
+```
+
+Retrieves all the data in the cache.
+
+```js
+cache.getAll();
+```
+
+For this example, assuming all the operations are called in the same order as written, the result of `cache.getAll()` will be
+
+```js
+[
+  "I like your profile. Would you like to connect?",
+  "Hi",
+  "Hey, how are you?",
+  "Are you there?",
+  "Sorry, I've been busy. I'll get back to you soon!",
+];
 ```
 
 ## API
 
 - `addOneAtTail(id: string, data: any)`
+- `addManyAtTail(messages: { id: string, data: any }[])`
 - `addOneAtHead(id: string, data: any)`
-- `addBunchAtHead(messages: { id: string, data: any }[])`
-- `replaceMessage(oldId: string, newId: string, newData: any)`
-- `updateMessage(oldId: string, newId: string, newData: any)`
-- `get(id: string)`
-- `delete(id: string)`
-- `getCacheData()`
+- `addManyAtHead(messages: { id: string, data: any }[])`
+- `updateOne(oldId: string, newId: string, newData: any)`
+- `replaceOne(oldId: string, newId: string, newData: any)`
+- `deleteOne(id: string)`
+- `getOne(id: string)`
+- `getAll()`
