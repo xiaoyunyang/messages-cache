@@ -17,29 +17,16 @@ export class MessagesCache {
   }
 
   /**
-   * retrieves the message with the given id from cache
-   * @param {string} id
-   * @returns {*} data
-   */
-  get(id) {
-    if (!this.cache.has(id)) return null;
-
-    return this.cache.get(id).data;
-  }
-
-  /**
    * Deletes a single message from the cache
    * @param {string} id
    * @returns
    */
-  delete(id) {
-    if (!this.cache.get(id)) {
-      // we don't have to return an error to avoid a noisy console
-      // the current state of the cache already represent the end
-      // state we want the cache to be so there's no additional action
-      // for the caller of this method
-      return;
-    }
+  deleteOne(id) {
+    // we don't have to return an error to avoid a noisy console
+    // the current state of the cache already represent the end
+    // state we want the cache to be so there's no additional action
+    // for the caller of this method
+    if (!this.cache.get(id)) return;
 
     const node = this.cache.get(id);
 
@@ -55,7 +42,7 @@ export class MessagesCache {
    * @param {*} newData
    * @returns
    */
-  updateMessage(id, newData) {
+  updateOne(id, newData) {
     if (!this.cache.get(id)) {
       console.error(
         `cannot update node with id=${id} because it doesn't exist in the cache`
@@ -100,6 +87,17 @@ export class MessagesCache {
 
   /**
    *
+   * @param {Array} newMessages
+   */
+  addManyAtTail(newMessages) {
+    for (let i = 0; i < newMessages.length; i++) {
+      const { id, data } = newMessages[i];
+      this.addOneAtTail(id, data);
+    }
+  }
+
+  /**
+   *
    * @param {string} id
    * @param {*} data
    * @returns
@@ -126,12 +124,23 @@ export class MessagesCache {
 
   /**
    *
+   * @param {Array} newMessages
+   */
+  addManyAtHead(newMessages) {
+    for (let i = newMessages.length - 1; i >= 0; i--) {
+      const { id, data } = newMessages[i];
+      this.addOneAtHead(id, data);
+    }
+  }
+
+  /**
+   *
    * @param {string} oldId
    * @param {string} newId
    * @param {*} newData
    * @returns
    */
-  replaceMessage(oldId, newId, newData) {
+  replaceOne(oldId, newId, newData) {
     const oldNode = this.cache.get(oldId);
 
     // Although in perfect use, we don't expect the API user to call this
@@ -167,22 +176,29 @@ export class MessagesCache {
     this.cache.delete(oldId);
   }
 
-  addBunchAtHead(newMessages) {
-    for (let i = newMessages.length - 1; i >= 0; i--) {
-      const { id, data } = newMessages[i];
-      this.addOneAtHead(id, data);
-    }
+  /**
+   * retrieves the message with the given id from cache
+   * @param {string} id
+   * @returns {*} data
+   */
+  getOne(id) {
+    if (!this.cache.has(id)) return null;
+
+    return this.cache.get(id).data;
   }
 
   /**
    *
    * @returns {Array<*>} an array of messages in the cache
    */
-  getCacheData() {
+  getAll() {
     const res = [];
     let curr = this.head.next;
 
     while (curr.next) {
+      // we don't need to worry about handling the null
+      // case of getOne because that indicates we have corrupt
+      // cache data, which should cause getAll to fail
       res.push(this.cache.get(curr.id).data);
       curr = curr.next;
     }
