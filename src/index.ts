@@ -55,7 +55,7 @@ export class MessagesCacheManager<Message extends { id: string }> {
     const node = this.cache.get(id);
 
     // we don't have to return an error to avoid a noisy console
-    // the current state of the cache already represent the end
+    // the current state of the cache already represents the end
     // state we want the cache to be so there's no additional action
     // for the caller of this method
     if (!node) return;
@@ -197,9 +197,7 @@ export class MessagesCacheManager<Message extends { id: string }> {
     // create new entry for real message
     const message = this.getOne(tempId)?.message;
     if (!message) return;
-    // delete optimistic message and add real message
-    // we do not want to cause any re-rendering at this point.
-    // Therefore, we don't update the messages component state here
+
     this.deleteOne(tempId);
     this.addOneAtTail(realId, { message, tempId });
     this.syncStateWithCache(this.getAll());
@@ -226,30 +224,36 @@ export class MessagesCacheManager<Message extends { id: string }> {
 
   updateMessagesCache(messages: Array<Message>) {
     // There are three types of updates which can occur when this function is called
-    // 1. New messages previous page are added to the beginning
-    // 2. New sent or received message added to the end
+    // 1. Older messages from the previous page are loaded
+    // 2. A new message is received
     // 3. An existing message is updated. This can happen when a message is read or gets a reaction from the recipient
 
-    // For the first two cases:
-    // left and right are indices for the boundaries of messages subarray
-    // that are currently in the cache
+    // Let `left` and `right` be indices for the boundaries of messages subarray containing messages which are already in the cache
+    // We can use left and right to partition the messages array into these three segments:
+    // [0, left), [left, right), [right, messages.length)
+    // Segment 1 contains older messages loaded from previous pages which are not in the cache
+    // Segment 2 contains the messages which are already in the cache
+    // Segment 3 contains the newer messages which are not in the cache
+    // We need different cache update strategies for each of these segments
+
+    // Update segment 1
     const left = Math.max(
       0,
       messages.findIndex((message) => this.cache.has(message.id))
     );
+    const headMessages = messages.slice(0, left);
+    this.addManyAtHead(headMessages);
+
+    // Update segment 3
     let right = messages.length - 1;
     while (right >= 0 && !this.cache.has(messages[right].id)) {
       right -= 1;
     }
-
-    const headMessages = messages.slice(0, left);
     const tailMessages = messages.slice(right + 1, messages.length);
-
-    this.addManyAtHead(headMessages);
     this.addManyAtTail(tailMessages);
 
-    // Update existing messages: we don't know which message
-    // we need to update so we will iterate through all and replace them
+    // Update segment 2:
+    // We don't know exactly which message changed (got a reaction or got read) so we will update all of them
     // Key assumption: all the messages in this interval we are traversing exist in the cache
     // There can be some messages in the cache that are not in the interval. These won't get touched
     for (let i = left; i <= right; i += 1) {
